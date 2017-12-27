@@ -1,0 +1,147 @@
+
+from PIL import Image, ImageDraw, ImageColor
+import math
+import time
+#Constants for the colors
+black = (0, 0, 0)
+blue = (0, 0, 153)
+red = (255, 0, 0)
+lightBlue = (102, 178, 255)
+turqoise = (0, 255, 255)
+purple = (255, 0, 255)
+orange = (255, 102, 0)
+maroon = (153, 0, 0)
+#Dimensions of the image
+dimX = 1024
+dimY = 1024
+threadIncrement = dimX / 8
+
+xMax = 0.300284
+xMin = 0.300282
+
+yMax = 0.48858
+yMin = 0.48856
+
+iterations = 0
+
+xAxisOffset = math.ceil(dimX/((abs(xMax) + abs(xMin))/abs(xMin)))
+yAxisOffset = math.ceil(dimY/((abs(yMax) + abs(yMin))/abs(yMax)))
+if xMax < 0 or xMin > 0:
+    xAxisOffset = dimX + 10
+if yMax < 0 or yMin > 0:
+    yAxisOffset = dimY + 10
+intervalX = (abs(xMax) + abs(xMin))/dimX
+intervalY = (abs(yMax) + abs(yMin))/dimY
+
+values = list()
+
+def main():
+    print(xAxisOffset)
+    print("Starting Mandlebrot")
+    # Creating the image and opening the drawing
+    im = Image.new('RGB', (dimX, dimY))
+    draw = ImageDraw.Draw(im, 'RGB')
+    time0 = time.time()
+    threadCount = 1
+    threads = []
+    for i in range(0, dimX, threadIncrement):
+        for j in range(0, dimY, threadIncrement):
+            print("Starting thread num: " + str(threadCount))
+
+    # for i in range(dimX):
+    #     for j in range(dimY):
+    #         if i == xAxisOffset or j == yAxisOffset:
+    #             #print("encountered x or y axis")
+    #             draw.point((i, j), (255, 255, 255))
+    #         else:
+    #             draw.point((i, j), startCalculation(i, j))
+    time1 = time.time()
+    totalTime = time1 - time0
+    print("Drawing took " + str(totalTime) + " seconds")
+    print("Did " + str(iterations) + " calculations")
+    im.show()
+    im.save("mandlebrot1.png")
+def calcSection(coords, increment, threadNum):
+    print("Creates thread and adds to list")
+def splitCalc(x, y, dim) -> Image:
+    if dim == 1:
+        result = calculate(0, getC(x, y))
+        color = None
+        if result == -1:
+            # print("making black")
+            color = black
+        elif result > 50:
+            # print("making blue")
+            color = maroon
+        elif result > 35:
+            color = red
+        elif result > 25:
+            color = orange
+        elif result > 15:
+            color = (255, 255, 0)
+        else:
+            color = (0, 30 - 30 * result, 153 + 8 * result)
+        im = Image.new('RGB', (1, 1))
+        draw = ImageDraw.Draw(im, 'RGB')
+        draw.point((x, y), color)
+        del draw
+        return im
+    else:
+        im = Image.new('RGB', (dim, dim))
+        im.paste(splitCalc((0, 0), dim/2), (0, 0, dim/2, dim/2))
+def getC(x, y) -> tuple:
+    a = None
+    b = None
+    if x > xAxisOffset:
+        a = (x - xAxisOffset) * intervalX
+    else:
+        a = -((xAxisOffset - x) * intervalX)
+    if y < yAxisOffset:
+        b = ((yAxisOffset - y) * intervalY)
+    else:
+        b = -(y - yAxisOffset) * intervalY
+    return (a, b)
+def startCalculation(x, y) -> tuple:
+    #print("Starting Calculation for " + x + " " + y)
+    a = None
+    b = None
+    if x > xAxisOffset:
+        a = (x - xAxisOffset) * intervalX
+    else:
+        a = -((xAxisOffset - x) * intervalX)
+    if y <yAxisOffset:
+        b = ((yAxisOffset - y) * intervalY)
+    else:
+        b = -(y - yAxisOffset) * intervalY
+    result = calculate((0, 0), (a, b), 0)
+    if result == -1:
+        #print("making black")
+        return black
+    elif result > 50:
+        #print("making blue")
+        return maroon
+    elif result > 35:
+        return red
+    elif result > 25:
+        return orange
+    elif result > 15:
+        return (255, 255, 0)
+    else:
+        return (0, 30 - 30 * result, 153 + 8 * result)
+def calculate(z, c, step) -> int:
+    #print("Doing calculation")
+    # print("z = " + str(z) + " c = " + str(c))
+    # print(str(math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2))))
+    if math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2)) > 2:
+        return step
+    elif step == 60:
+        return -1
+    else:
+        newZ = (math.pow(z[0], 2) + -1 * math.pow(z[1], 2) + c[0], 2 * z[0] * z[1] + c[1])
+        global iterations
+        iterations += 1
+        return calculate(newZ, c, step + 1)
+
+main()
+
+
