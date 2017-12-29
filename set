@@ -1,8 +1,9 @@
 from threading import Thread
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image, ImageDraw
 import math
 import time
-#Constants for the colors
+
+# Constants for the colors
 black = (0, 0, 0)
 blue = (0, 0, 153)
 red = (255, 0, 0)
@@ -12,43 +13,32 @@ purple = (255, 0, 255)
 orange = (255, 102, 0)
 maroon = (153, 0, 0)
 
-#Dimensions of the image
+# Dimensions of the image
 dimX = 1024
 dimY = 1024
 threadIncrement = dimX // 8
 
-#Essentially the 'Window' of the program
-xMax = 0.300284
-xMin = 0.300282
+# Essentially the 'Window' of the program
+xMax = -.65
+xMin = -1.35
 
-yMax = 0.48858
-yMin = 0.48856
+yMax = 0.35
+yMin = -0.35
 
-#Used to keep track of how many threads were made? IDK if I even need this
+# Used to keep track of how many calculations are made
 iterations = 0
 
-#Offset the x and y axis because they won't be in the middle depending on the window
-#Calculated by takeing the proportion of the lengths of the positive x or y axis vs the negative x or y axis
-xAxisOffset = math.ceil(dimX/((abs(xMax) + abs(xMin))/abs(xMin)))
-yAxisOffset = math.ceil(dimY/((abs(yMax) + abs(yMin))/abs(yMax)))
-#If the x or y axis is out of from hardcode it to be off the screen
-if xMax < 0 or xMin > 0:
-    xAxisOffset = dimX + 10
-if yMax < 0 or yMin > 0:
-    yAxisOffset = dimY + 10
+# Used to calculate the actual value of each pixel on the complex plane
+intervalX = (-xMin + xMax)/dimX
+intervalY = (-yMin + xMax)/dimY
 
-#Used to calculate the actual value of each pixel on the complex plane
-intervalX = (abs(xMax) + abs(xMin))/dimX
-intervalY = (abs(yMax) + abs(yMin))/dimY
-
-#Creates an empty list with 64 spaces for images
-values = [None]*64
-#Keeps track of threads
+# Creates an empty list with 64 spaces for images
+values = [Image.new('RGB', (dimY//8, dimX//8)) for i in range(64)]
+# Keeps track of threads
 threads = []
 
 
 def main():
-    print(xAxisOffset)
     print("Starting Mandlebrot")
     # Creating the image and opening the drawing
     im = Image.new('RGB', (dimX, dimY))
@@ -56,54 +46,42 @@ def main():
     threadCount = 1
     for i in range(0, dimX, threadIncrement):
         for j in range(0, dimY, threadIncrement):
-            print("Starting thread num: " + str(threadCount))
-            newThread = Thread(target=calcSection(), args=((i, j), threadIncrement, threadCount))
+            newThread = Thread(target=calcSection, args=((j, i), threadIncrement, threadCount))
             threads.append(newThread)
             newThread.start()
+            threadCount += 1
     for i in range(len(threads)):
         threads[i].join()
-        im.paste(values[i])
-    # for i in range(dimX):
-    #     for j in range(dimY):
-    #         if i == xAxisOffset or j == yAxisOffset:
-    #             #print("encountered x or y axis")
-    #             draw.point((i, j), (255, 255, 255))
-    #         else:
-    #             draw.point((i, j), startCalculation(i, j))
+        y = (i // 8)
+        x = (i - (8 * y))
+        im.paste(values[i], (x * threadIncrement, y * threadIncrement))
     time1 = time.time()
     totalTime = time1 - time0
     print("Drawing took " + str(totalTime) + " seconds")
     print("Did " + str(iterations) + " calculations")
-    im.show()
     im.save("mandlebrot1.png")
-def calcSection(coords, increment, threadNum):
-    print("Creates thread and adds to list")
-    """
-    Create an image
-    Create a draw
-    for each pixel
-        calculate the C value
-        set the pixel color to the color found by calculate
-        
-    """
 
-def getC(x, y) -> tuple:
+
+def calcSection(coords, increment, threadNum):
+    im = Image.new('RGB', (increment, increment))
+    draw = ImageDraw.Draw(im, 'RGB')
+    for i in range(increment):
+        for j in range(increment):
+            draw.point((i, j), startCalculation(getC(coords[0] + i, coords[1] + j)))
+    draw.text((0, 0), "({} + {}i".format(getC(coords[0], coords[1])[0], getC(coords[0], coords[1])[1]))
+    del draw
+    values[threadNum-1] = im
+
+
+def getC(x, y):
     """
     Finds out what the value of the pixel is in the complex plane
     :param x: X coordinate of pixel
     :param y: Y coordinate of pixel
     :return: The a and be values of the complex number. In form of a + bi
     """
-    a = None
-    b = None
-    if x > xAxisOffset:
-        a = (x - xAxisOffset) * intervalX
-    else:
-        a = -((xAxisOffset - x) * intervalX)
-    if y < yAxisOffset:
-        b = ((yAxisOffset - y) * intervalY)
-    else:
-        b = -(y - yAxisOffset) * intervalY
+    a = x * intervalX + xMin
+    b = yMax + (y * intervalY)
     return a, b
 
 
@@ -117,12 +95,9 @@ def calculate(z, c, step) -> int:
     :param step: The current iteration of the equation. Used to determine if it is in the set
     :return: -1 if it is in the set, or how many iterations it takes to get out of the set
     """
-    #print("Doing calculation")
-    # print("z = " + str(z) + " c = " + str(c))
-    # print(str(math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2))))
     if math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2)) > 2:
         return step
-    elif step == 60:
+    elif step == 50:
         return -1
     else:
         newZ = (math.pow(z[0], 2) + -1 * math.pow(z[1], 2) + c[0], 2 * z[0] * z[1] + c[1])
@@ -130,6 +105,26 @@ def calculate(z, c, step) -> int:
         iterations += 1
         return calculate(newZ, c, step + 1)
 
+
+def startCalculation(c) -> tuple:
+    # print("Starting Calculation for " + x + " " + y)
+    result = calculate((0, 0), c, 0)
+    if result == -1:
+        # print("making black")
+        return black
+    elif result > 50:
+        # print("making blue")
+        return purple
+    elif result > 35:
+        return maroon
+    elif result > 25:
+        return red
+    elif result > 20:
+        return orange
+    elif result > 17:
+        return 255, 255, 0
+    else:
+        return 0, 30 - 30 * result, 153 + 8 * result
 main()
 
 """
