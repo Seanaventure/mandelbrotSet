@@ -19,18 +19,18 @@ dimY = 1024
 threadIncrement = dimX // 8
 
 # Essentially the 'Window' of the program
-xMax = -.65
-xMin = -1.35
+xMax = -1.2019
+xMin = -1.20
 
-yMax = 0.35
-yMin = -0.35
+yMax = 0.2407
+yMin = 0.2352
 
 # Used to keep track of how many calculations are made
 iterations = 0
 
 # Used to calculate the actual value of each pixel on the complex plane
 intervalX = (-xMin + xMax)/dimX
-intervalY = (-yMin + xMax)/dimY
+intervalY = (-yMin + yMax)/dimY
 
 # Creates an empty list with 64 spaces for images
 values = [Image.new('RGB', (dimY//8, dimX//8)) for i in range(64)]
@@ -68,7 +68,7 @@ def calcSection(coords, increment, threadNum):
     for i in range(increment):
         for j in range(increment):
             draw.point((i, j), startCalculation(getC(coords[0] + i, coords[1] + j)))
-    draw.text((0, 0), "({} + {}i".format(getC(coords[0], coords[1])[0], getC(coords[0], coords[1])[1]))
+    draw.text((0, 0), "({} + {}i)".format(round(getC(coords[0], coords[1])[0], 5), round(getC(coords[0], coords[1])[1], 5)))
     del draw
     values[threadNum-1] = im
 
@@ -81,7 +81,7 @@ def getC(x, y):
     :return: The a and be values of the complex number. In form of a + bi
     """
     a = x * intervalX + xMin
-    b = yMax + (y * intervalY)
+    b = yMax - (y * intervalY)
     return a, b
 
 
@@ -97,7 +97,7 @@ def calculate(z, c, step) -> int:
     """
     if math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2)) > 2:
         return step
-    elif step == 50:
+    elif step == 100:
         return -1
     else:
         newZ = (math.pow(z[0], 2) + -1 * math.pow(z[1], 2) + c[0], 2 * z[0] * z[1] + c[1])
@@ -112,76 +112,15 @@ def startCalculation(c) -> tuple:
     if result == -1:
         # print("making black")
         return black
-    elif result > 50:
+    elif result > 75:
+        return 0, 255, 0
+    elif result > 55:
         # print("making blue")
         return purple
-    elif result > 35:
-        return maroon
-    elif result > 25:
-        return red
-    elif result > 20:
-        return orange
+    elif result > 40:
+        return 225 - 8 * (result - 40), 0, 0
     elif result > 17:
-        return 255, 255, 0
+        return 255, abs(255 - 20*(result - 17)), 0
     else:
-        return 0, 30 - 30 * result, 153 + 8 * result
+        return 0, 8 * result - 8, 255
 main()
-
-"""
-Old methods that I may need in the future
-def splitCalc(x, y, dim) -> Image:
-    if dim == 1:
-        result = calculate(0, getC(x, y))
-        color = None
-        if result == -1:
-            # print("making black")
-            color = black
-        elif result > 50:
-            # print("making blue")
-            color = maroon
-        elif result > 35:
-            color = red
-        elif result > 25:
-            color = orange
-        elif result > 15:
-            color = (255, 255, 0)
-        else:
-            color = (0, 30 - 30 * result, 153 + 8 * result)
-        im = Image.new('RGB', (1, 1))
-        draw = ImageDraw.Draw(im, 'RGB')
-        draw.point((x, y), color)
-        del draw
-        return im
-    else:
-        im = Image.new('RGB', (dim, dim))
-        im.paste(splitCalc((0, 0), dim/2), (0, 0, dim/2, dim/2))
-
-def startCalculation(x, y) -> tuple:
-    #print("Starting Calculation for " + x + " " + y)
-    a = None
-    b = None
-    if x > xAxisOffset:
-        a = (x - xAxisOffset) * intervalX
-    else:
-        a = -((xAxisOffset - x) * intervalX)
-    if y <yAxisOffset:
-        b = ((yAxisOffset - y) * intervalY)
-    else:
-        b = -(y - yAxisOffset) * intervalY
-    result = calculate((0, 0), (a, b), 0)
-    if result == -1:
-        #print("making black")
-        return black
-    elif result > 50:
-        #print("making blue")
-        return maroon
-    elif result > 35:
-        return red
-    elif result > 25:
-        return orange
-    elif result > 15:
-        return (255, 255, 0)
-    else:
-        return (0, 30 - 30 * result, 153 + 8 * result)
-"""
-
