@@ -1,3 +1,14 @@
+"""
+Program that creates a visualsation of the famous fractal called the Mandelbrot Set. The Mandelbrot Set is a set of
+all complex numbers where the limit of the equation f(z) = z^2 + c, where c is the complex number, and z is the value of
+the previous iteration of f(z), is less than 2. If the complex num is in the set it is colored black and if not its color
+is based off how many steps it takes to escape the set
+
+Author: Sean Bonaventure
+Last Updated: 1/19/18
+seanbon.student.rit.edu
+"""
+
 from threading import Thread
 from PIL import Image, ImageDraw
 import math
@@ -19,11 +30,11 @@ dimY = 1024
 threadIncrement = dimX // 8
 
 # Essentially the 'Window' of the program
-xMax = -1.2019
-xMin = -1.20
+xMax = 1
+xMin = -2
 
-yMax = 0.2407
-yMin = 0.2352
+yMax = 2
+yMin = -2
 
 # Used to keep track of how many calculations are made
 iterations = 0
@@ -63,6 +74,13 @@ def main():
 
 
 def calcSection(coords, increment, threadNum):
+    """
+    Calculates the section of the image
+    :param coords: The pixel coordinates of the upper left corner of the beginning of the block
+    :param increment: The width of the block
+    :param threadNum: The number of the thread. Aks what number block it is. Used to determine how to stitch the image together
+    :return: none
+    """
     im = Image.new('RGB', (increment, increment))
     draw = ImageDraw.Draw(im, 'RGB')
     for i in range(increment):
@@ -97,7 +115,7 @@ def calculate(z, c, step) -> int:
     """
     if math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2)) > 2:
         return step
-    elif step == 100:
+    elif step == 150:
         return -1
     else:
         newZ = (math.pow(z[0], 2) + -1 * math.pow(z[1], 2) + c[0], 2 * z[0] * z[1] + c[1])
@@ -105,10 +123,35 @@ def calculate(z, c, step) -> int:
         iterations += 1
         return calculate(newZ, c, step + 1)
 
+def calculateIter(c):
+    """
+    Iteratively goes through the calculation to see if the number c is in the set
+    :param c: The complex number being tested
+    :return: How many steps it takes to get out of set, if it does
+    """
+    maxStep = 50
+    z = (0, 0)
+    step = 1
+    value = 0
+    while value < 2 and step < maxStep:
+        z = (math.pow(z[0], 2) + -1 * math.pow(z[1], 2) + c[0], 2 * z[0] * z[1] + c[1])
+        global iterations
+        iterations += 1
+        value = math.sqrt(math.pow(z[0], 2) + math.pow(z[1], 2))
+        step += 1
+    if step == maxStep:
+        step = -1
+    return step
 
 def startCalculation(c) -> tuple:
+    """
+    Basically determines what color the pixel will be by calling the calculation method and getting the result of it
+    :param c: the c value
+    :return: a tuple containing the RGB values
+    """
     # print("Starting Calculation for " + x + " " + y)
-    result = calculate((0, 0), c, 0)
+    #result = calculate((0, 0), c, 0)
+    result = calculateIter(c)
     if result == -1:
         # print("making black")
         return black
